@@ -1,0 +1,74 @@
+{
+  "note": "exploratory; not the pre-registered matrix",
+  "seed": 20261124,
+  "arms": [
+    "luna",
+    "glm",
+    "gemma"
+  ],
+  "group_size": 3,
+  "groups": [
+    {
+      "group_id": "q01",
+      "case": "healthy",
+      "rep": 1,
+      "smoke": true
+    },
+    {
+      "group_id": "q02",
+      "case": "latency_injected",
+      "rep": 1,
+      "smoke": false
+    },
+    {
+      "group_id": "q03",
+      "case": "broker_stopped",
+      "rep": 2,
+      "smoke": false
+    },
+    {
+      "group_id": "q04",
+      "case": "latency_enricher",
+      "rep": 2,
+      "smoke": false
+    },
+    {
+      "group_id": "q05",
+      "case": "redis_node_stopped",
+      "rep": 2,
+      "smoke": false
+    },
+    {
+      "group_id": "q06",
+      "case": "latency_enricher",
+      "rep": 1,
+      "smoke": false
+    },
+    {
+      "group_id": "q07",
+      "case": "redis_node_stopped",
+      "rep": 1,
+      "smoke": false
+    },
+    {
+      "group_id": "q08",
+      "case": "latency_injected",
+      "rep": 2,
+      "smoke": false
+    },
+    {
+      "group_id": "q09",
+      "case": "broker_stopped",
+      "rep": 1,
+      "smoke": false
+    }
+  ],
+  "runs": 27,
+  "caps_usd": {
+    "quick_total": 3.0,
+    "per_group": 0.75,
+    "smoke_max_per_run": 0.15
+  },
+  "agent_timeout_seconds": 1800,
+  "order_rule": "first group is the healthy smoke test; the other groups are shuffled with random.Random(seed)"
+}

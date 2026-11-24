@@ -1,0 +1,6 @@
+{
+  "snapshot_utc": null,
+  "source": "GET https://openrouter.ai/api/v1/models/{id}/endpoints (public, no key)",
+  "note": "Placeholder. Fill with `python -m experiments.preregister catalog` at pre-registration and commit; prices and supported parameters in arms.json must match it.",
+  "models": {}
+}

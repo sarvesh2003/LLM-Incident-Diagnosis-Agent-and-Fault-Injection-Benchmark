@@ -1,0 +1,97 @@
+name: Verify supported checks
+
+# Deterministic checks only: no model endpoint, GPU or MaxMind credentials.
+# The integration job uses the record-free GeoIP fixture, so it checks the
+# transaction path, not real GeoIP data.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_PROJECT_NAME: ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Go images (Linux, CGO, musl)
+        run: docker compose build go-server go-enricher
+      - name: Vet and test the checked-out source in the build image
+        run: >
+          docker run --rm --network none -e CGO_ENABLED=1 -v "$PWD:/src:ro" -w /src/pipeline --entrypoint sh ci-go-enricher
+          -c 'go vet -tags musl ./go-server ./go-enricher ./internal/... &&
+          go test -tags musl -count=1 ./go-server ./go-enricher ./pb/... ./internal/...'
+
+  producer:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_PROJECT_NAME: ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the traffic producer image
+        run: docker compose build python-producer
+      - name: Generator and send-loop tests inside the image
+        run: >
+          docker run --rm --network none -e PYTHONWARNINGS=ignore -v "$PWD:/src:ro" -w /src
+          --entrypoint python ci-python-producer -m unittest tests.test_traffic -v
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Config, scoring, harness lifecycle, benchmark tooling and production Lua (disposable Redis)
+        run: >
+          python -m unittest tests.test_agent_contract tests.test_v2_scoring tests.test_experiment_stack
+          tests.test_experiment_runner tests.test_benchmark tests.test_experiment_design tests.test_redis_window
+          tests.test_rate_limit -v
+
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r agent/requirements.txt
+      - name: Investigation control flow, artifacts, MCP-to-agent path, fake endpoint
+        run: >
+          python -m unittest tests.test_agent_graph tests.test_agent_run tests.test_observation_path
+          tests.test_fake_model -v
+
+  mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r mcp-server/requirements.txt
+      - name: Tool contracts against controlled Docker/Prometheus replies
+        run: python -m unittest tests.test_mcp_tools tests.test_mcp_metrics -v
+
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      EXPERIMENT_STACK_FILE: experiments/fixture_stack.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install grpcio==1.83.1 protobuf==7.36.1
+      - run: python -m experiments.stack build
+      - run: python -m experiments.stack up
+      - run: python -m experiments.runner --wait-ready 300
+      - name: Reconcile 50 acknowledged requests with raw and enriched records
+        run: python -m experiments.pipeline_probe --count 50
+      - name: Replay, invalid input and poison-message smoke check
+        run: python -m tests.smoke_pipeline
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose -p fraud_fixture_check -f docker-compose.yaml logs --no-color --tail 100
+      - if: always()
+        run: python -m experiments.stack down

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "title": "Pre-registered analysis plan (hashed by `python -m experiments.preregister freeze`; implemented by experiments/aggregate.py)",
+  "scoring": "Human labels are the only score. Labels are made on the model-blind sheet (experiments.label_sheet), which hides the model but not the case.",
+  "arms": {
+    "main": ["luna@openai", "glm@z-ai-fp8 (or glm@novita-fp8, see glm_cost_switch)", "gemma@novita-bf16", "nemotron@free (free variant only)"],
+    "headline_holm_family": "the 4 arms, one test per arm and rule; at alpha .05/4 an arm needs at least 8 discordant pairs (agent right, rule wrong, none the other way)",
+    "free_arm_contingency": "if the free arm halts permanently (any cost above zero, a non-free served model, an unverifiable $0, a permanent unavailability, or availability failures on 3 distinct UTC days without a completed run), the benchmark continues with the 3 paid arms; the family becomes those 3 arms (at least 7 discordant pairs); the decision is recorded in <runs>/free_arm_halt.json and the free arm's completed runs are reported descriptively only",
+    "user_rule": "If Nemotron would be paid, don't execute it; use it only if free; otherwise keep 3 models.",
+    "glm_cost_switch": "if GLM's median cost per run in the pre-pilot is above $0.109, then before P2 either switch to the novita-fp8 pin ($0.63 / $1.98 per million; a new arm id) or record cost_switch.decision = 'accept' (GLM may stop early at its $3.40 cap); `batch --plan` reports which; the main phase refuses to start while it is undecided; z-ai fp8 stays the default"
+  },
+  "cases": {
+    "hidden_P2_6_reps": ["latency_injected (go-server, 200 ms)", "client_timeout_too_low", "cpu_throttled (LOW_CPUS 0.1, or 0.01 if Phase 0 decides)", "latency_enricher (go-enricher, 200 ms)"],
+    "healthy_P2_6_reps": ["healthy"],
+    "visible_P3_2_reps": ["redis_node_stopped", "ingestion_paused", "broker_stopped", "enricher_paused"],
+    "rows": "38 per arm, 152 in total; the free arm has its own blocks and is interleaved only while its daily request budget allows"
+  },
+  "per_fault": "every metric block is reported for hidden, visible, healthy, all, and for each fault separately",
+  "metrics": {
+    "Q1": "strict hidden accuracy (diagnosis_label = correct / human-valid hidden runs), Wilson 95%; localization (localized = yes) and detection (detected = yes); ITT: model-caused invalids (unparseable or token-limited conclusion) count as wrong",
+    "Q1_rules": "R1, R0, R2 (recency) and R3 (cause-naming runbook that may abstain), each scored strictly and for localization on the same runs; exact McNemar per arm, Holm-adjusted over the headline family",
+    "Q2": "healthy false-alarm rate pooled over the family with Wilson (per arm descriptive only); P(correct | confirmed); selective accuracy (accuracy on non-abstained fault runs) with coverage",
+    "Q3": "cost per correct diagnosis; median cost per run; Fisher exact arm vs arm on hidden strict accuracy (descriptive except GLM vs the better cheap arm)",
+    "Q4": "confidence-downgrade gate offline, reported both ways: precision of 'confirmed' self-reported vs enforced, wrong confirmations caught AND correct confirmations downgraded",
+    "Q5": "pass^k for k = 1, 2, 4, unbiased C(c,k)/C(n,k) per (arm, case) cell, averaged over cells; modal consistency",
+    "Q6": "Cohen's kappa, auto-labeller vs blind human labels (second rater only); share of runs passing the manipulation check"
+  },
+  "availability": "free-arm availability failures (429, rate limit, transient provider error) are reported separately; they are not model failures and do not use up a re-queue",
+  "registered_comparisons": {
+    "localization": "latency_injected (go-server) vs latency_enricher (go-enricher): same mechanism, different component; per arm, Fisher exact, strict and localization",
+    "mechanism": "latency_injected vs cpu_throttled: same component (go-server), different mechanism; per arm, Fisher exact, strict and localization"
+  },
+  "sensitivity": [
+    "hidden faults without client_timeout_too_low (its cause is visible in a single read_config reply and its recreated container is visibly younger, rule R2)",
+    "hidden faults without runs whose manipulation check failed (no symptom in the model-free snapshot)"
+  ],
+  "rule_r3": "decision list on the model-free runbook snapshots using only signals the agent's tools can observe: (a) a Go service config setting that differs from the pre-injection snapshot names the service and the setting; (b) a p50 latency ratio or error ratio above threshold names the service; (c) then a CPU signal (GOMAXPROCS lower than before, or CPU rate above threshold) names cpu, a latency anomaly without one names network delay, errors alone name errors; otherwise abstain. Thresholds (r3_thresholds.json) come only from healthy-run data (margin 1.5 x the largest healthy value), never from fault labels or case names; derive them (`python -m experiments.runbook_rule derive`) and re-freeze before P2; until then they are flagged provisional",
+  "validity": "a running-target fault whose container is not running after injection (go-server has no restart policy, so a failed startup ping leaves it exited) is invalid with the cause 'target not running after injection'; it is re-run once and never scored as the registered fault",
+  "not_claimed": ["rankings of arms whose intervals overlap", "a false-alarm rate below 10%", "per-arm false-alarm rates", "generalization beyond the registered faults", "MTTR or latency claims", "results from cases that failed the Phase 0 gate unless reported as such"]
+}

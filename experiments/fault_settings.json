@@ -1,0 +1,4 @@
+{
+  "_note": "Per-case fault-script settings (protocol file: changing one requires `python -m experiments.preregister freeze`). Only runner.CONFIGURABLE_SETTINGS may be set, to a registered value. cpu_throttled LOW_CPUS is 0.1 until Phase 0 (validate_faults --gate) decides; the one pre-registered fallback is 0.01.",
+  "cpu_throttled": {"LOW_CPUS": "0.1"}
+}

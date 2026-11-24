@@ -1,0 +1,42 @@
+#!/bin/bash
+# Network fault 10: tc netem packet loss on the target container's interface
+# (same netshoot sidecar approach as fault 9).
+# Symptom: retries, timeouts and dropped-connection errors.
+# Restore: delete the netem qdisc.
+# Usage: 10_packet_loss.sh <inject|restore>  [TARGET=go-server LOSS_PCT=10% IFACE=eth0]
+set -euo pipefail
+source "$(dirname "$0")/../common.sh"
+
+TARGET="${TARGET:-go-server}"
+LOSS_PCT="${LOSS_PCT:-10%}"
+IFACE="${IFACE:-eth0}"
+
+inject() {
+    CID="$(container_id "$TARGET")"
+    echo "Adding ${LOSS_PCT} packet loss to $TARGET's $IFACE..."
+    docker run --rm --net=container:"$CID" --cap-add=NET_ADMIN nicolaka/netshoot \
+        tc qdisc add dev "$IFACE" root netem loss "$LOSS_PCT"
+    echo "Done. Check for retries/timeouts and dropped-connection errors."
+}
+
+restore() {
+    CID="$(container_id "$TARGET")"
+    echo "Removing netem loss from $TARGET's $IFACE..."
+    # Only tc's "Invalid qdisc name" means already clean; any other failure
+    # is reported, not swallowed.
+    OUTPUT="$(docker run --rm --net=container:"$CID" --cap-add=NET_ADMIN nicolaka/netshoot \
+        tc qdisc del dev "$IFACE" root netem 2>&1)" && echo "Removed." || {
+        if [[ "$OUTPUT" == *"Invalid qdisc name"* ]]; then
+            echo "(already clean, nothing to remove)"
+        else
+            echo "ERROR: restore failed unexpectedly: $OUTPUT" >&2
+            exit 1
+        fi
+    }
+}
+
+case "${1:-}" in
+    inject) log_change inject; inject ;;
+    restore) log_change restore; restore ;;
+    *) echo "Usage: $0 <inject|restore>  (optional: TARGET=go-server LOSS_PCT=10% IFACE=eth0)"; exit 1 ;;
+esac

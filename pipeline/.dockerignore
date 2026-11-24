@@ -1,0 +1,19 @@
+# Allow-list of the files the three images copy; everything else stays out of
+# the build context (including .env, venvs, runs and fixtures).
+**
+
+!go.mod
+!go.sum
+!pb/proto/fraud/v1/*.go
+!internal/*/*.go
+!go-server/*.go
+!go-enricher/*.go
+
+!proto/fraud/v1/*.py
+!python-producer/requirements.txt
+!python-producer/traffic.py
+!python-producer/transaction-generator-models/model_gaussian_20L.pkl
+!python-producer/transaction-generator-models/userIds_10k.csv
+
+**/*_test.go
+**/__pycache__/

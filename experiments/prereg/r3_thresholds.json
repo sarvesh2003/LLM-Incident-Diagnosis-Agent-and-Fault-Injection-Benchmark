@@ -1,0 +1,12 @@
+{
+  "cpu_rate": {
+    "go-enricher": null,
+    "go-server": null
+  },
+  "derived_from": null,
+  "error_ratio": 0.01,
+  "latency_ratio": 3.0,
+  "margin": 1.5,
+  "note": "provisional values (gate G2 levels); derive from healthy runs before the main phase: python -m experiments.runbook_rule derive --runs experiments/runs/pilot --gate-file <phase0 gate json>",
+  "status": "provisional"
+}

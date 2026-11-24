@@ -1,0 +1,136 @@
+{
+  "schema_version": 2,
+  "note": "Model arms and matrix for the OpenRouter benchmark. Prices and supported parameters are from the public catalog snapshot of 2026-11-23; re-check them with `python -m experiments.preregister catalog` before freezing. Changing an arm's pin makes it a new arm (its arm id changes, so earlier runs are not counted for it). After editing, regenerate the schedule and re-freeze.",
+  "base_url": "https://openrouter.ai/api/v1",
+  "matrix": {
+    "seed": 20261123,
+    "phases": {
+      "P1": "pre-pilot, unscored (experiments/runs/pilot): every arm x pilot_cases via `batch --pilot`",
+      "P2": "main A, headline Q1-Q5: hidden faults + healthy",
+      "P3": "main B, parity Q2: visible faults"
+    },
+    "pilot_cases": ["healthy", "latency_injected"],
+    "cases": {
+      "latency_injected": {"phase": "P2", "role": "hidden", "reps": 6},
+      "client_timeout_too_low": {"phase": "P2", "role": "hidden", "reps": 6},
+      "cpu_throttled": {"phase": "P2", "role": "hidden", "reps": 6},
+      "latency_enricher": {"phase": "P2", "role": "hidden", "reps": 6},
+      "healthy": {"phase": "P2", "role": "control", "reps": 6},
+      "redis_node_stopped": {"phase": "P3", "role": "visible", "reps": 2},
+      "ingestion_paused": {"phase": "P3", "role": "visible", "reps": 2},
+      "broker_stopped": {"phase": "P3", "role": "visible", "reps": 2},
+      "enricher_paused": {"phase": "P3", "role": "visible", "reps": 2}
+    }
+  },
+  "defaults": {
+    "allow_fallbacks": false,
+    "data_collection": "deny",
+    "seed": 20261123,
+    "reasoning_effort": null
+  },
+  "token_model": {
+    "note": "Per-run token estimates; the pre-pilot replaces them with measured usage.",
+    "typical": {"input": 29000, "output": 900, "reasoning": 6800},
+    "worst": {"input": 98000, "output": 2100, "reasoning": 21500}
+  },
+  "spend_guard": {
+    "global_budget_usd": 5.25,
+    "observed_run_factor": 1.5,
+    "note": "The batch starts no run when the recorded spend of all arms (pre-pilot included) plus that run's reservation would exceed global_budget_usd (the OpenRouter key limit is $5.50; $0.25 margin). Pre-pilot spend counts against each arm's cap. Per-run reservation: the token-model worst case until the arm has a completed paid run, then max(worst case, observed_run_factor x its highest observed run cost). A run whose cost was not recorded (agent killed or crashed first) counts at the reservation, or at its audited cost if larger."
+  },
+  "arms": [
+    {
+      "key": "luna",
+      "enabled": true,
+      "model_id": "openai/gpt-6-luna",
+      "pin": "openai",
+      "pins": {
+        "openai": {"provider_order": ["openai"], "quantizations": [],
+                   "price_usd_per_million": {"input": 0.10, "output": 0.50}}
+      },
+      "reasoning": true,
+      "effective_temperature": "provider default: temperature is not a supported parameter on this endpoint, so the requested 0.2 is ignored",
+      "cap_usd": 0.60
+    },
+    {
+      "key": "glm",
+      "enabled": true,
+      "model_id": "z-ai/glm-5.3",
+      "pin": "z-ai-fp8",
+      "pins": {
+        "z-ai-fp8": {"provider_order": ["z-ai"], "quantizations": ["fp8"],
+                     "price_usd_per_million": {"input": 1.40, "output": 4.40}},
+        "novita-fp8": {"provider_order": ["novita"], "quantizations": ["fp8"],
+                       "price_usd_per_million": {"input": 0.63, "output": 1.98},
+                       "note": "pre-registered cost-switch alternative; a new arm id glm@novita-fp8"},
+        "wafer-fp4": {"provider_order": ["wafer"], "quantizations": ["fp4"],
+                      "price_usd_per_million": null,
+                      "note": "UNVERIFIED: provider slug and price; fill both from the catalog snapshot before selecting this pin"}
+      },
+      "reasoning": true,
+      "effective_temperature": 0.2,
+      "cap_usd": 3.40,
+      "cost_switch": {
+        "rule": "If GLM's median cost per run in the pre-pilot exceeds threshold_median_usd_per_run, then before the main phase either set pin to alternative_pin (a new arm id) or set decision to 'accept' (GLM may stop early at its cap). The batch refuses the main phase until one is recorded.",
+        "default_pin": "z-ai-fp8",
+        "alternative_pin": "novita-fp8",
+        "threshold_median_usd_per_run": 0.109,
+        "decision": null
+      }
+    },
+    {
+      "key": "gemma",
+      "enabled": true,
+      "model_id": "google/gemma-4-31b-it",
+      "pin": "novita-bf16",
+      "pins": {
+        "novita-bf16": {"provider_order": ["novita"], "quantizations": ["bf16"],
+                        "price_usd_per_million": {"input": 0.14, "output": 0.40}},
+        "crusoe-bf16": {"provider_order": ["crusoe"], "quantizations": ["bf16"],
+                        "price_usd_per_million": {"input": 0.14, "output": 0.40},
+                        "note": "price assumed equal to novita; confirm in the catalog snapshot"}
+      },
+      "reasoning": false,
+      "effective_temperature": 0.2,
+      "cap_usd": 0.50
+    },
+    {
+      "key": "nemotron",
+      "enabled": true,
+      "free": true,
+      "model_id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "pin": "free",
+      "pins": {
+        "free": {"provider_order": [], "quantizations": [],
+                 "price_usd_per_million": {"input": 0, "output": 0},
+                 "max_price_usd_per_million": {"prompt": 0, "completion": 0},
+                 "note": "free variant only; no provider is pinned (its slug is not in the offline snapshot). max_price 0/0 makes OpenRouter refuse any paid route; allow_fallbacks false"}
+      },
+      "data_collection": "allow",
+      "data_collection_note": "user-approved 2026-11-23 for this free arm only (free endpoints may log or train on prompts; prompts are synthetic logs and container names); every other arm stays 'deny'",
+      "reasoning": true,
+      "effective_temperature": "UNVERIFIED until the pre-pilot: requested 0.2",
+      "cap_usd": 0.0,
+      "free_tier": {
+        "requests_per_day": 50,
+        "requests_per_minute": 20,
+        "worst_case_requests_per_run": 16,
+        "accepted_served_models": ["nvidia/nemotron-3-ultra-550b-a55b:free"],
+        "note": "50 requests/day while lifetime purchases are below $10 (1,000/day at $10 or more; override with batch --free-requests-per-day). The day is UTC. accepted_served_models is the exact model string replies and the generation audit should report. Its base id (without ':free') and dated variants ('<base>-YYYYMMDD', with or without ':free') are accepted only when every call reported exactly $0, the zero-cost guard was on and the generation audit confirmed $0 for every generation; anything else halts the arm."
+      }
+    },
+    {
+      "key": "frontier",
+      "enabled": false,
+      "model_id": "anthropic/claude-sonnet-5.5",
+      "pin": "anthropic",
+      "pins": {
+        "anthropic": {"provider_order": ["anthropic"], "quantizations": [],
+                      "price_usd_per_million": {"input": 2.00, "output": 10.00}}
+      },
+      "reasoning": false,
+      "effective_temperature": "provider default: temperature is not a supported parameter on this endpoint",
+      "cap_usd": 3.00
+    }
+  ]
+}

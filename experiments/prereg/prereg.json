@@ -1,0 +1,279 @@
+{
+  "analysis_sha256": {
+    "experiments/aggregate.py": "bd4446f0590df6b65b229283b1193f5f8ff78be9792dab7cf3c08fc989cfcce2",
+    "experiments/auto_label.py": "bf572f1ede24a4a70c5e6b8622c77463005cd65d8be62acbb0db143b8c4a062e",
+    "experiments/baseline_rule.py": "375a4c07b436680f9c470852f51c3913a2190390e7815eb68ea488ea5f8a39dd",
+    "experiments/batch.py": "7f3ac7e69d81f401ec8768a514ba6438a0548ae9ab414c675cbc6c234346fd4b",
+    "experiments/free_tier.py": "c7346f0995120da8443a07d05b17bbd32d0d99647cc6ddb7e79ae2633d5cbc43",
+    "experiments/label_sheet.py": "9ff7ec6a0590693befe1b8f1b1be36d92d7bfeb1368d0f9885bf7e403bacda94",
+    "experiments/observability_probe.py": "83229b77eb8fd4f1801a5bcc04c700ae809036043a5a01bf7859ce73c735399b",
+    "experiments/prereg/analysis_plan.json": "576afb6310219781fcb4bdde24f832cb859535b6084cfaee7fa74039000e71ce",
+    "experiments/prereg/r3_thresholds.json": "5ca8b38ba2b246885296970d61f5d8094c3842dcdac5104dd78fd2c09a93353b",
+    "experiments/runbook_rule.py": "80fe90b7e51cb0c5323d71c521853d05e3643f2417bb3aea3342e4bcbe55f95a",
+    "experiments/score.py": "4deb7fb09d32e60210df707c3b79bef4d22815380db211b64331afed420acf89",
+    "experiments/validate_faults.py": "9faf672e63fc772c2cfc10cea162821328861c12f27559e972294fe480433301"
+  },
+  "arms": {
+    "gemma": {
+      "allow_fallbacks": false,
+      "cap_usd": 0.5,
+      "cost_switch": null,
+      "data_collection": "deny",
+      "effective_temperature": 0.2,
+      "free": false,
+      "free_tier": null,
+      "id": "gemma@novita-bf16",
+      "key": "gemma",
+      "max_price": null,
+      "model_id": "google/gemma-4-31b-it",
+      "pin": "novita-bf16",
+      "price_usd_per_million": {
+        "input": 0.14,
+        "output": 0.4
+      },
+      "provider_order": [
+        "novita"
+      ],
+      "quantizations": [
+        "bf16"
+      ],
+      "reasoning": false,
+      "reasoning_effort": null,
+      "require_zero_cost": false,
+      "seed": 20261123
+    },
+    "glm": {
+      "allow_fallbacks": false,
+      "cap_usd": 3.4,
+      "cost_switch": {
+        "alternative_pin": "novita-fp8",
+        "decision": null,
+        "default_pin": "z-ai-fp8",
+        "rule": "If GLM's median cost per run in the pre-pilot exceeds threshold_median_usd_per_run, then before the main phase either set pin to alternative_pin (a new arm id) or set decision to 'accept' (GLM may stop early at its cap). The batch refuses the main phase until one is recorded.",
+        "threshold_median_usd_per_run": 0.109
+      },
+      "data_collection": "deny",
+      "effective_temperature": 0.2,
+      "free": false,
+      "free_tier": null,
+      "id": "glm@z-ai-fp8",
+      "key": "glm",
+      "max_price": null,
+      "model_id": "z-ai/glm-5.3",
+      "pin": "z-ai-fp8",
+      "price_usd_per_million": {
+        "input": 1.4,
+        "output": 4.4
+      },
+      "provider_order": [
+        "z-ai"
+      ],
+      "quantizations": [
+        "fp8"
+      ],
+      "reasoning": true,
+      "reasoning_effort": null,
+      "require_zero_cost": false,
+      "seed": 20261123
+    },
+    "luna": {
+      "allow_fallbacks": false,
+      "cap_usd": 0.6,
+      "cost_switch": null,
+      "data_collection": "deny",
+      "effective_temperature": "provider default: temperature is not a supported parameter on this endpoint, so the requested 0.2 is ignored",
+      "free": false,
+      "free_tier": null,
+      "id": "luna@openai",
+      "key": "luna",
+      "max_price": null,
+      "model_id": "openai/gpt-6-luna",
+      "pin": "openai",
+      "price_usd_per_million": {
+        "input": 0.1,
+        "output": 0.5
+      },
+      "provider_order": [
+        "openai"
+      ],
+      "quantizations": [],
+      "reasoning": true,
+      "reasoning_effort": null,
+      "require_zero_cost": false,
+      "seed": 20261123
+    },
+    "nemotron": {
+      "allow_fallbacks": false,
+      "cap_usd": 0.0,
+      "cost_switch": null,
+      "data_collection": "allow",
+      "effective_temperature": "UNVERIFIED until the pre-pilot: requested 0.2",
+      "free": true,
+      "free_tier": {
+        "accepted_served_models": [
+          "nvidia/nemotron-3-ultra-550b-a55b:free"
+        ],
+        "note": "50 requests/day while lifetime purchases are below $10 (1,000/day at $10 or more; override with batch --free-requests-per-day). The day is UTC. accepted_served_models is the exact model string replies and the generation audit should report. Its base id (without ':free') and dated variants ('<base>-YYYYMMDD', with or without ':free') are accepted only when every call reported exactly $0, the zero-cost guard was on and the generation audit confirmed $0 for every generation; anything else halts the arm.",
+        "requests_per_day": 50,
+        "requests_per_minute": 20,
+        "worst_case_requests_per_run": 16
+      },
+      "id": "nemotron@free",
+      "key": "nemotron",
+      "max_price": {
+        "completion": 0,
+        "prompt": 0
+      },
+      "model_id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "pin": "free",
+      "price_usd_per_million": {
+        "input": 0,
+        "output": 0
+      },
+      "provider_order": [],
+      "quantizations": [],
+      "reasoning": true,
+      "reasoning_effort": null,
+      "require_zero_cost": true,
+      "seed": 20261123
+    }
+  },
+  "created_at_utc": "2026-11-24T19:22:52.646918+00:00",
+  "fault_settings": {
+    "cpu_throttled": {
+      "LOW_CPUS": "0.1"
+    }
+  },
+  "hash_note": "sha256 of each file with CRLF normalized to LF",
+  "matrix": {
+    "cases": {
+      "broker_stopped": {
+        "phase": "P3",
+        "reps": 2,
+        "role": "visible"
+      },
+      "client_timeout_too_low": {
+        "phase": "P2",
+        "reps": 6,
+        "role": "hidden"
+      },
+      "cpu_throttled": {
+        "phase": "P2",
+        "reps": 6,
+        "role": "hidden"
+      },
+      "enricher_paused": {
+        "phase": "P3",
+        "reps": 2,
+        "role": "visible"
+      },
+      "healthy": {
+        "phase": "P2",
+        "reps": 6,
+        "role": "control"
+      },
+      "ingestion_paused": {
+        "phase": "P3",
+        "reps": 2,
+        "role": "visible"
+      },
+      "latency_enricher": {
+        "phase": "P2",
+        "reps": 6,
+        "role": "hidden"
+      },
+      "latency_injected": {
+        "phase": "P2",
+        "reps": 6,
+        "role": "hidden"
+      },
+      "redis_node_stopped": {
+        "phase": "P3",
+        "reps": 2,
+        "role": "visible"
+      }
+    },
+    "phases": {
+      "P1": "pre-pilot, unscored (experiments/runs/pilot): every arm x pilot_cases via `batch --pilot`",
+      "P2": "main A, headline Q1-Q5: hidden faults + healthy",
+      "P3": "main B, parity Q2: visible faults"
+    },
+    "pilot_cases": [
+      "healthy",
+      "latency_injected"
+    ],
+    "seed": 20261123
+  },
+  "protocol_sha256": {
+    "agent/config.py": "f8624c04ce95dae81dfc35d0a0f0e65df2a581e56bb8a388e9331eb314ed517c",
+    "agent/graph.py": "cf8b0f151d90ef3b0bf503569d9ad86ee5d27ee86f132f34ff694dd7a5dce897",
+    "agent/report.py": "f6c7ce1afd2cecca5cf57e77d7c79fc82abef20f6706e9a75a9774d520c94366",
+    "agent/run.py": "3332398759ab7de2ee85e0c5f344615c3259624ed681a8a670a43481945917c4",
+    "agent/system_prompt.md": "32eb9cb7e56b68f2c72de8bcac009555199e46fb6c93d59423d81d3990c2437b",
+    "agent/tools.py": "71627b821e93a85c7291074eb2abd6658efb6b40e0b9adc0936bf2739bea74da",
+    "docker-compose.yaml": "0c7a547516f65afb516cdeb5229296ad056fbe81896e30037ef4f54b0daa2fb2",
+    "experiments/bench_stack.json": "f26fbf4ba8229970757311e99ffe5d0290166f6f353880e36f8542861ed096df",
+    "experiments/fault_settings.json": "329333aba6319a27d5277fe3fef9f49f7cf69e88eb9d9a0dae5a1a39ca325f91",
+    "experiments/openrouter_audit.py": "820456856dc9d1fb91f426f63c371e2ad4ad6e0b0d6c229df40d49822e7babbb",
+    "experiments/prereg/arms.json": "5fdb5302d4fe87bd26466926be6cbb829b5615896832f5fc679100c90ae182d6",
+    "experiments/prereg/schedule.csv": "f68588d54b11848d8be7f5b753ffa28738af9bef852a4ae4b984b3e8e2525df1",
+    "experiments/runner.py": "21a5afff0bdca83df790d7eafb669304ee753fe2c0ef927788a413275848ac81",
+    "experiments/stack.py": "f33d624721c5edf510dc23c0de520bdf83a5d681fdeded67cfdd02332aa39f21",
+    "experiments/symptoms.py": "0c055340a39f30191477b9f7eb7ab8c14884cfd9982b6dc48e2b3b46605aca2c",
+    "fault-injection/common.sh": "b2c501f3a1679491f74242255cdf1d0a80f8041def8de7e3dfc8ad42d2f65fea",
+    "fault-injection/config/13_client_timeout_too_low.sh": "c1ab211942b2c16969d2c38b5da1885e982a7e690666e99248aa4b7b795e196c",
+    "fault-injection/kafka/17_broker_stopped.sh": "741d1548f467f3bacea351b58d556d1aa654b1aebe9400879356a096c4e68d83",
+    "fault-injection/network/09_latency_injection.sh": "96a7028208e59e49a2fb6a2dd43ed9adfa5d4aa62f9a2389bc64fe61185b9f45",
+    "fault-injection/network/11_container_paused.sh": "0732be14abdacc4287571e01b6e9f6320b394691bb7bb7edaa97271ca2bc2822",
+    "fault-injection/network/12_cpu_throttle.sh": "be0150b021173b325a27c0079282a18c8e505e86d2a36f063d4f8081e69b540d",
+    "fault-injection/network/18_enricher_paused.sh": "df649bb6f6ffaa8dc2ea3e3a4a93f9694233ff5b859e50e525132eb3196bfd45",
+    "fault-injection/redis/01_node_stopped.sh": "37282cc4d919cd5db0c059575bfb2bee4700e1a305d87fc6703d79ca4b50819c",
+    "mcp-server/server.py": "bc9a73d9ee5f923b3576354479216dbdad45ba7e3019f4d2c7ba85d0b343acbd",
+    "prometheus/prometheus.yml": "756ec717d973e9b0279e890a21be49f9ff41cc8ff5675b41ad77fbf135b125df"
+  },
+  "rules": {
+    "free_arm": "nemotron runs only as ':free' with $0 price, $0 cap, no fallbacks, max_price 0/0 and the agent's zero-cost guard; data_collection 'allow' for this arm only (user-approved). It halts permanently if any run reports cost > 0, a served model outside the free variant (its base id and dated '-YYYYMMDD' variants count as the free variant only with a verified $0), an unverifiable $0, a permanent unavailability, or availability failures on 3 distinct UTC days without a completed run. A 429 or transient provider error pauses it (availability failure, not a model failure, no re-queue used). It starts a run only if the UTC day's request budget (50/day, worst case 16 requests per run) covers a worst-case run. 'If Nemotron would be paid, don't execute it; use it only if free; otherwise keep 3 models.'",
+    "frozen": "prompt, tools, budget (15 incl. 2 baseline), max_tokens 8192, client max_retries 1 and the arms are frozen for the matrix; the pre-pilot may change infrastructure only, judged on tokens and errors, never on diagnoses",
+    "glm_cost_switch": "if GLM's median cost per run in the pre-pilot exceeds $0.109, before the main phase either switch GLM to the novita-fp8 pin (new arm id glm@novita-fp8, $0.63/$1.98) or accept that GLM may stop early at its $3.40 cap (arms.json cost_switch.decision 'accept'); the batch refuses the main phase until one is recorded. z-ai fp8 stays the default",
+    "headline_family": "the 4 enabled arms (luna, glm, gemma and the free nemotron arm): Holm over 4 tests per rule, so an arm needs at least 8 discordant pairs (alpha .05/4). If the free arm halts permanently, the family becomes the 3 paid arms (at least 7 pairs) and the decision is recorded in <runs>/free_arm_halt.json",
+    "primary": [
+      "Q1 strict hidden accuracy = human 'correct' / human-valid hidden-fault runs per arm, Wilson 95%, with per-fault k/n; paired exact McNemar against rules R1, R2 and R3 on the same runs, Holm-corrected over the headline arm family",
+      "Q2 healthy false-alarm rate = human 'wrong' / human-valid healthy runs, pooled over the headline arms, Wilson 95% (per-arm values descriptive only)"
+    ],
+    "requeue": "an invalid attempt not caused by the model is re-run once at the end of the schedule; interrupted, key-limit and free-arm availability attempts do not count; model-caused invalids are outcomes, not re-run",
+    "rubric": {
+      "broker_stopped": "Names kafka AND that the broker is stopped/exited.",
+      "client_timeout_too_low": "Names go-server, its Redis client timeout setting(s) AND that the value is too low.",
+      "cpu_throttled": "Names go-server AND its CPU limit/quota or CPU starvation.",
+      "enricher_paused": "Names go-enricher AND that its container is paused/frozen.",
+      "healthy": "Any asserted fault is wrong (false alarm); 'no supported issue' or an abstention is correct.",
+      "ingestion_paused": "Names go-server AND that its container is paused/frozen.",
+      "latency_enricher": "Names go-enricher AND network delay/latency on it. Blaming Redis, Kafka or go-server is wrong.",
+      "latency_injected": "Names go-server AND network delay/latency on it. Blaming Redis or Kafka as the cause is wrong.",
+      "redis_node_stopped": "Names redis2 (not just 'a redis node') AND that it is stopped/exited."
+    },
+    "rule_r0": "every container whose state in evidence entry 0 is 'exited' or 'paused'; else healthy",
+    "rule_r1": "first service in zookeeper,kafka,redis1,redis2,redis3,go-server,go-enricher,prometheus whose state in evidence entry 0 is not 'running' (absent counts); else healthy",
+    "rule_r2": "R1; if healthy, the single required service whose entry-0 status is 'Up' < 120 s while every other required service is older (recently restarted); else healthy",
+    "rule_r3": "cause-naming runbook on the model-free runbook snapshots (experiments.runbook_rule): (a) Go service config differs from the pre-injection snapshot -> service and setting; (b) p50 latency ratio or error ratio above threshold -> service, then (c) CPU signal (GOMAXPROCS dropped or CPU rate above threshold) -> cpu, else latency -> network delay, else errors; otherwise abstain. Thresholds come only from healthy-run data (r3_thresholds.json); scored for localization and strict diagnosis",
+    "scoring": "human labels in experiments/human_labels.csv (filled through the model-blind label sheet, experiments.label_sheet) are the only score; the auto-labeller is a second rater reported as agreement (Cohen's kappa), never a score",
+    "secondary": [
+      "localization and detection accuracy (labels localized, detected)",
+      "ITT hidden accuracy: runs invalid because of the model (unparseable or token-limited conclusion) count as wrong; infrastructure, provider and availability invalids stay excluded",
+      "P(correct | confirmed) under enforced and self-reported confidence (Q2b, Q4); the downgrade rule reported both ways: wrong confirmations caught and correct confirmations downgraded",
+      "selective accuracy with coverage",
+      "cost per correct diagnosis (Q3), Fisher exact arm vs arm",
+      "pass^k for k = 1, 2, 4, unbiased estimator C(c,k)/C(n,k) (Q5)",
+      "Cohen's kappa auto-labeller vs blind human labels (Q6); manipulation-check pass share",
+      "registered comparisons: localization (latency_injected vs latency_enricher) and mechanism (latency_injected vs cpu_throttled)",
+      "sensitivity: hidden accuracy without client_timeout_too_low; without runs failing the manipulation check",
+      "every metric also per fault",
+      "invalid attempts by cause; availability failures separately"
+    ],
+    "stop": "an arm stops before a run when its spend (pre-pilot included) plus its per-run reservation would exceed its cap; the reservation is the token-model worst case until the arm has a completed paid run, then max(worst case, 1.5 x its highest observed run cost); no run starts when the recorded spend of all arms (pre-pilot included) plus its reservation would exceed the global budget (arms.json spend_guard, $5.25 under a $5.50 key limit); a run whose cost was not recorded (agent killed at the runner timeout or crashed first) counts at the reservation, or its audited cost if larger (cost_estimated); an OpenRouter HTTP 401/402/403 or 'Key limit exceeded' stops the batch and does not use up a re-queue (a 429 does not stop it)",
+    "validity": "runner validity_errors (a running-target fault whose container is not running after injection is invalid as 'target not running after injection'), plus provider drift and an incomplete generation audit; invalid attempts stay in the attempted count"
+  },
+  "schedule_rows": 152,
+  "schema_version": 2,
+  "tool_schema_sha256": null
+}
